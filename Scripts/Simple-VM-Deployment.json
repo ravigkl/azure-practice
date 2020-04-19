@@ -58,7 +58,7 @@
         },
         "VmSize": {
             "type": "string",
-            "defaultValue": "Standard_B1ls",
+            "defaultValue": "Standard_LRS",
             "metadata": {
                 "description": "The size of the VM"
             }
