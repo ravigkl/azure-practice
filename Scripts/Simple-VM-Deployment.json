@@ -1,5 +1,5 @@
 {
-    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
     "parameters": {
         "vmName": {
@@ -17,7 +17,7 @@
         },
         "authenticationType": {
             "type": "string",
-            "defaultValue": "password",
+            "defaultValue": "sshPublicKey",
             "allowedValues": [
                 "sshPublicKey",
                 "password"
@@ -43,7 +43,9 @@
             "type": "string",
             "defaultValue": "16.04-LTS",
             "allowedValues": [
-                "16.04-LTS"
+                "12.04.5-LTS",
+                "14.04.5-LTS",
+                "16.04.0-LTS"
             ],
             "metadata": {
                 "description": "The Ubuntu version for the VM. This will pick a fully patched image of this given Ubuntu version."
@@ -58,7 +60,7 @@
         },
         "VmSize": {
             "type": "string",
-            "defaultValue": "Standard_B2s",
+            "defaultValue": "Standard_LRS",
             "metadata": {
                 "description": "The size of the VM"
             }
@@ -106,6 +108,29 @@
     },
     "resources": [
         {
+            "name": "[concat(parameters('vmName'),'/', 'ConfigureNginx')]",
+        "type": "Microsoft.Compute/virtualMachines/extensions",
+        "apiVersion": "2018-06-01",
+        "location": "[parameters('location')]",
+        "properties": {
+            "publisher": "Microsoft.Azure.Extensions",
+            "type": "customScript",
+            "typeHandlerVersion": "2.0",
+            "autoUpgradeMinorVersion": true,
+            "settings": {
+                "fileUris": [
+                "https://raw.githubusercontent.com/ravigkl/azure-practice/master/Scripts/configure-nginx.sh"
+                ]
+            },
+        "protectedSettings": {
+           "commandToExecute": "./configure-nginx.sh"
+            }
+        },
+        "dependsOn": [
+            "[resourceId('Microsoft.Compute/virtualMachines/', parameters('vmName'))]"
+            ]
+        },
+        {
             "type": "Microsoft.Network/networkInterfaces",
             "apiVersion": "2018-10-01",
             "name": "[variables('networkInterfaceName')]",
@@ -142,7 +167,20 @@
             "location": "[parameters('location')]",
             "properties": {
                 "securityRules": [
-                    {
+                  {
+                        "name":"allow_80",
+                        "properties": {
+                            "priority": 101,
+                            "protocol": "TCP",
+                            "access": "Allow",
+                            "direction": "Inbound",
+                            "sourceAddressPrefix": "Internet",
+                            "sourcePortRange": "*",
+                            "destinationAddressPrefix": "*",
+                            "destinationPortRange": "80"
+                        }
+                  },
+                  {
                         "name": "SSH",
                         "properties": {
                             "priority": 1000,
@@ -155,6 +193,7 @@
                             "destinationPortRange": "22"
                         }
                     }
+
                 ]
             }
         },
